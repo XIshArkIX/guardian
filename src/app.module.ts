@@ -1,7 +1,5 @@
 import { VkModule } from './vk/vk.module';
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
@@ -11,7 +9,7 @@ import { ConfigModule } from '@nestjs/config';
     }),
     VkModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
