@@ -20,7 +20,7 @@ jobs:
         run: yarn
 
       - name: Run jest
-        run: yarn test
+        run: yarn test --pass-with-no-tests
   build:
     needs: tests
     runs-on: ubuntu-latest
