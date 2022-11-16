@@ -1,12 +1,18 @@
-/*
-https://docs.nestjs.com/controllers#controllers
-*/
-
-import { Body, Controller, Get, HttpCode, Post, Request } from '@nestjs/common';
-import { ConfirmationCodeDTO } from '../interfaces';
+import { ConfirmationCodeDTO, NewMessageDTO } from '../interfaces';
 import { VkService } from './vk.service';
+import { VkGuard } from './vk.guard';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 
 @Controller(/* { host: 'guardian.statbot.info' } */)
+@UseGuards(VkGuard)
 export class VkController {
   constructor(private vkService: VkService) {}
 
@@ -20,12 +26,18 @@ export class VkController {
 
   @Post()
   @HttpCode(200)
+  answerOnMessageNew(@Body() message: NewMessageDTO) {
+    return this.vkService.onMessageNew(message);
+  }
+
+  @Post()
+  @HttpCode(200)
   defaultRoutePOST(body: any) {
     return this.vkService.logAndOk(body);
   }
 
   @Get()
-  defaultRouteGET(@Request() req) {
-    return this.vkService.logAndOk(req);
+  defaultRouteGET(@Request() request) {
+    return this.vkService.logAndOk(request);
   }
 }

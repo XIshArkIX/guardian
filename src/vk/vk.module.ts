@@ -1,13 +1,11 @@
 import { VkService } from './vk.service';
 import { VkController } from './vk.controller';
-/*
-https://docs.nestjs.com/modules
-*/
-
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
+import { ConstModule } from '../constants';
 
 @Module({
-  imports: [],
+  imports: [HttpModule, ConstModule],
   controllers: [VkController],
   providers: [VkService],
 })
