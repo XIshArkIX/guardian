@@ -1,4 +1,6 @@
-import { ConfirmationCodeDTO, NewMessageDTO } from '../interfaces';
+import { OnEvent } from '@nestjs/event-emitter';
+import { EditMessageObject, MessageDTO, NewMessageObject } from '../interfaces';
+import { ValidationPipe } from '../global';
 import { VkService } from './vk.service';
 import { VkGuard } from './vk.guard';
 import {
@@ -7,7 +9,6 @@ import {
   Get,
   HttpCode,
   Post,
-  Request,
   UseGuards,
 } from '@nestjs/common';
 
@@ -18,26 +19,28 @@ export class VkController {
 
   @Post()
   @HttpCode(200)
-  // using filter pipe
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  answerConfirmationCode(@Body() confirmation: ConfirmationCodeDTO) {
-    return this.vkService.answerConfirmationCode();
-  }
-
-  @Post()
-  @HttpCode(200)
-  answerOnMessageNew(@Body() message: NewMessageDTO) {
-    return this.vkService.onMessageNew(message);
-  }
-
-  @Post()
-  @HttpCode(200)
-  defaultRoutePOST(body: any) {
-    return this.vkService.logAndOk(body);
+  defaultRoutePOST(@Body() request: any) {
+    return this.vkService.getRouteFor(request);
   }
 
   @Get()
-  defaultRouteGET(@Request() request) {
-    return this.vkService.logAndOk(request);
+  defaultRouteGET(@Body() request: any) {
+    return this.vkService.getRouteFor(request);
+  }
+
+  @OnEvent('messages.message_new')
+  answerOnMessageNew(
+    @Body(new ValidationPipe())
+    message: MessageDTO & { object: NewMessageObject },
+  ) {
+    this.vkService.onMessageNew(message);
+  }
+
+  @OnEvent('messages.message_edit')
+  answerOnMessageEdit(
+    @Body(new ValidationPipe())
+    message: MessageDTO & { object: EditMessageObject },
+  ) {
+    this.vkService.onMessageEdit(message);
   }
 }

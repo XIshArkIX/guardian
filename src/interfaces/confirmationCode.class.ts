@@ -1,4 +1,9 @@
+import { Equals, IsNumber } from 'class-validator';
+
 export class ConfirmationCodeDTO {
-  type = 'confirmation';
+  @Equals('confirmation')
+  type: string;
+
+  @IsNumber()
   group_id: number;
 }
