@@ -11,7 +11,10 @@ export class ConstService {
     const url = new URL(method, 'https://api.vk.com');
 
     url.searchParams.append('v', this.v);
-    url.searchParams.append('token', this.configService.get<string>('TOKEN'));
+    url.searchParams.append(
+      'access_token',
+      this.configService.get<string>('TOKEN'),
+    );
 
     return url;
   }

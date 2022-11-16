@@ -1,7 +1,7 @@
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { AttachmentType } from '../interfaces/attachment';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
-import { BadRequestException, Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConstService } from '../constants';
 import {
@@ -19,6 +19,8 @@ export class VkService {
   // according to RFC1035
   private linkRegex = /([a-z\-0-9]{1,255}\.)+[a-z\-0-9]{1,63}/iu;
 
+  private logger = new Logger(VkService.name);
+
   constructor(
     private configService: ConfigService,
     private httpService: HttpService,
@@ -27,6 +29,8 @@ export class VkService {
   ) {}
 
   answerConfirmationCode() {
+    this.logger.log('Receive confirmation event');
+
     return this.configService.get<string>('CONFIRMATION_CODE');
   }
 
@@ -67,6 +71,8 @@ export class VkService {
   // }
 
   async onMessageEdit(message: MessageDTO & { object: EditMessageObject }) {
+    this.logger.log('Receive message_edit event');
+
     const text = message.object.text;
     const peerId = message.object.peer_id;
     const hasBadLinksInText = this.linkRegex.test(text);
@@ -74,23 +80,37 @@ export class VkService {
     const punishment = () => {
       const axios = this.httpService.axiosRef;
 
-      return Promise.allSettled([
-        axios.postForm(
-          this.constService.getLinkFor('method/messages.delete').toString(),
-          {
-            message_ids: `${message.object.id}`,
-            delete_for_all: '1',
-            peer_id: `${peerId}`,
-            cmids: `${message.object.conversation_message_id}`,
-          },
-        ),
-        axios.postForm(
-          this.constService.getLinkFor('messages.removeChatUser').toString(),
-          {
-            chat_id: `${message.object.peer_id - 2000000000}`,
-            user_id: `${message.object.from_id}`,
-          },
-        ),
+      return Promise.all([
+        axios
+          .postForm(
+            this.constService.getLinkFor('method/messages.delete').toString(),
+            {
+              message_ids: `${message.object.id}`,
+              delete_for_all: '1',
+              peer_id: `${peerId}`,
+              cmids: `${message.object.conversation_message_id}`,
+            },
+          )
+          .then((response) => {
+            if (response.data.error) {
+              return Promise.reject(response.data);
+            }
+          }),
+        axios
+          .postForm(
+            this.constService
+              .getLinkFor('method/messages.removeChatUser')
+              .toString(),
+            {
+              chat_id: `${message.object.peer_id - 2000000000}`,
+              user_id: `${message.object.from_id}`,
+            },
+          )
+          .then((response) => {
+            if (response.data.error) {
+              return Promise.reject(response.data);
+            }
+          }),
       ]);
     };
 
@@ -105,7 +125,13 @@ export class VkService {
         return;
       }
 
-      await punishment();
+      try {
+        await punishment();
+      } catch (error) {
+        console.error(error);
+      }
+
+      return;
     }
 
     const hasLinkAttachment = this.hasLinkAttachment(message);
@@ -123,11 +149,17 @@ export class VkService {
         return;
       }
 
-      await punishment();
+      try {
+        await punishment();
+      } catch (error) {
+        console.error(error);
+      }
     }
   }
 
   async onMessageNew(message: MessageDTO & { object: NewMessageObject }) {
+    this.logger.log('Receive message_new event');
+
     const text = message.object.message.text;
     const peerId = message.object.message.peer_id;
     const hasBadLinksInText = this.linkRegex.test(text);
@@ -135,23 +167,37 @@ export class VkService {
     const punishment = () => {
       const axios = this.httpService.axiosRef;
 
-      return Promise.allSettled([
-        axios.postForm(
-          this.constService.getLinkFor('method/messages.delete').toString(),
-          {
-            message_ids: `${message.object.message.id}`,
-            delete_for_all: '1',
-            peer_id: `${peerId}`,
-            cmids: `${message.object.message.conversation_message_id}`,
-          },
-        ),
-        axios.postForm(
-          this.constService.getLinkFor('messages.removeChatUser').toString(),
-          {
-            chat_id: `${message.object.message.peer_id - 2000000000}`,
-            user_id: `${message.object.message.from_id}`,
-          },
-        ),
+      return Promise.all([
+        axios
+          .postForm(
+            this.constService.getLinkFor('method/messages.delete').toString(),
+            {
+              message_ids: `${message.object.message.id}`,
+              delete_for_all: '1',
+              peer_id: `${peerId}`,
+              cmids: `${message.object.message.conversation_message_id}`,
+            },
+          )
+          .then((response) => {
+            if (response.data.error) {
+              return Promise.reject(response.data);
+            }
+          }),
+        axios
+          .postForm(
+            this.constService
+              .getLinkFor('method/messages.removeChatUser')
+              .toString(),
+            {
+              chat_id: `${message.object.message.peer_id - 2000000000}`,
+              user_id: `${message.object.message.from_id}`,
+            },
+          )
+          .then((response) => {
+            if (response.data.error) {
+              return Promise.reject(response.data);
+            }
+          }),
       ]);
     };
 
@@ -166,7 +212,13 @@ export class VkService {
         return;
       }
 
-      await punishment();
+      try {
+        await punishment();
+      } catch (error) {
+        console.error(error);
+      }
+
+      return;
     }
 
     const hasLinkAttachment = this.hasLinkAttachment(message);
@@ -184,7 +236,11 @@ export class VkService {
         return;
       }
 
-      await punishment();
+      try {
+        await punishment();
+      } catch (error) {
+        console.error(error);
+      }
     }
 
     // TODO: release anti-forward bypass
@@ -219,8 +275,6 @@ export class VkService {
   }
 
   logAndOk(request: any) {
-    console.log(request?.body);
-
     return 'ok';
   }
 }
